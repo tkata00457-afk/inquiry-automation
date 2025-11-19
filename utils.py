@@ -39,6 +39,73 @@ import constants as ct
 ############################################################
 load_dotenv()
 
+#######################################################################################################################
+# utils.py の先頭あたりに追加
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+import constants as ct
+import os
+import logging
+
+logger = logging.getLogger(ct.LOGGER_NAME)
+
+
+def test_slack_connection():
+    """
+    Streamlit Cloud の環境から Slack にメッセージを送れるかテストする関数。
+    「動作検証用」チャンネルを名前で探して、テストメッセージを1件投げる。
+    """
+    token = os.environ.get("SLACK_USER_TOKEN")
+    if not token:
+        raise RuntimeError("環境変数 SLACK_USER_TOKEN が設定されていません。Secrets の設定を確認してください。")
+
+    client = WebClient(token=token)
+
+    try:
+        # 認証テスト
+        auth_res = client.auth_test()
+        logger.info(f"Slack auth_test OK: {auth_res}")
+
+        # チャンネル一覧から「動作検証用」を探す
+        channel_id = None
+        cursor = None
+
+        while True:
+            res = client.conversations_list(
+                types="public_channel,private_channel",
+                limit=100,
+                cursor=cursor
+            )
+            for ch in res["channels"]:
+                if ch.get("name") == "動作検証用":
+                    channel_id = ch["id"]
+                    break
+
+            cursor = res.get("response_metadata", {}).get("next_cursor")
+            if channel_id or not cursor:
+                break
+
+        if not channel_id:
+            raise RuntimeError("Slack に『動作検証用』というチャンネルが見つかりませんでした。名前が完全一致か確認してください。")
+
+        # テストメッセージを送信
+        client.chat_postMessage(
+            channel=channel_id,
+            text="接続テスト：Streamlit Cloud からのテストメッセージです。"
+        )
+
+        return "Slack へのテストメッセージ送信に成功しました。"
+
+    except SlackApiError as e:
+        logger.exception(e)
+        raise RuntimeError(f"Slack API エラー: {e.response['error']}") from e
+    except Exception as e:
+        logger.exception(e)
+        raise
+##############################################################################################################################
+
+
 
 ############################################################
 # 関数定義

@@ -42,10 +42,10 @@ logs/
 .streamlit/secrets.toml
 
 # RAGやSlackなど、ローカルの生データ
-data/rag/company/
-data/rag/customer/
-data/rag/service/
-data/slack/
+# data/rag/company/
+# data/rag/customer/
+# data/rag/service/
+# data/slack/
 
 # 必要に応じて使い捨ての一時データ
 data/tmp/

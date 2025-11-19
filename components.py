@@ -38,6 +38,16 @@ def display_sidebar():
         
         st.markdown("## 問い合わせモード")
 
+###################################################################################################################
+    with st.sidebar:
+        if st.button("Slack 接続テストを実行"):
+            try:
+                msg = utils.test_slack_connection()
+                st.success(msg)
+            except Exception as e:
+                st.error(f"Slack 接続テストでエラーが発生しました: {e}")
+##################################################################################################################
+
         col1, col2 = st.columns([100, 1])
         with col1:
             st.session_state.contact_mode = st.selectbox(
