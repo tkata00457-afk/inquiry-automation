@@ -33,7 +33,7 @@ def display_sidebar():
             st.session_state.agent_mode = st.selectbox(
                 label="",
                 options=[ct.AI_AGENT_MODE_ON, ct.AI_AGENT_MODE_OFF],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
         st.markdown("## 問い合わせモード")
@@ -43,11 +43,11 @@ def display_sidebar():
             st.session_state.contact_mode = st.selectbox(
                 label="",
                 options=[ct.CONTACT_MODE_OFF, ct.CONTACT_MODE_ON],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
-        # 🔽 ここに Slack 接続テストを配置
-        st.markdown("### Slack 接続テスト")
+        # 🔽 ここが今回の“印”になる部分
+        st.markdown("### Slack 接続テスト（デバッグ）")
         if st.button("Slack 接続テストを実行"):
             try:
                 msg = utils.test_slack_connection()
