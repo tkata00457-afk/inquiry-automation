@@ -46,7 +46,7 @@ def display_sidebar():
                 label_visibility="collapsed",
             )
 
-        # 🔽 ここが今回の“印”になる部分
+        # 🔽 ここが Slack 接続テスト
         st.markdown("### Slack 接続テスト（デバッグ）")
         if st.button("Slack 接続テストを実行"):
             try:
@@ -58,11 +58,21 @@ def display_sidebar():
         st.divider()
 
         st.markdown("**【AIエージェントとは】**")
-        st.code("質問に対して適切と考えられる回答を生成できるまで、生成AIロボット自身に試行錯誤してもらえる機能です。自身の回答に対して評価・改善を繰り返すことで、より優れた回答を生成できます。", wrap_lines=True)
-        st.warning("AIエージェント機能を利用する場合、回答生成により多くの時間を要する可能性が高いです。", icon=":material/warning:")
+        st.code(
+            "質問に対して適切と考えられる回答を生成できるまで、生成AIロボット自身に試行錯誤してもらえる機能です。"
+            "自身の回答に対して評価・改善を繰り返すことで、より優れた回答を生成できます。",
+            wrap_lines=True,
+        )
+        st.warning(
+            "AIエージェント機能を利用する場合、回答生成により多くの時間を要する可能性が高いです。",
+            icon=":material/warning:",
+        )
 
         st.markdown("**【問い合わせモードとは】**")
-        st.code("問い合わせモードを「ON」にしてメッセージを送信すると、担当者に直接届きます。", wrap_lines=True)
+        st.code(
+            "問い合わせモードを「ON」にしてメッセージを送信すると、担当者に直接届きます。",
+            wrap_lines=True,
+        )
 
 
 def display_initial_ai_message():

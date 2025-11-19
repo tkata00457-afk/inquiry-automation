@@ -35,6 +35,9 @@ import constants as ct
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+logger = logging.getLogger(ct.LOGGER_NAME)
+
+
 ############################################################
 # 設定関連
 ############################################################
@@ -42,67 +45,37 @@ load_dotenv()
 
 #######################################################################################################################
 # utils.py の先頭あたりに追加
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 
-import constants as ct
-import os
-import logging
-
-logger = logging.getLogger(ct.LOGGER_NAME)
-
-
-def test_slack_connection():
+def test_slack_connection() -> str:
     """
-    Streamlit Cloud の環境から Slack にメッセージを送れるかテストする関数。
-    「動作検証用」チャンネルを名前で探して、テストメッセージを1件投げる。
+    Slack への投稿テスト用関数。
+    「動作検証用」チャンネルにテストメッセージを送るだけ。
     """
-    token = os.environ.get("SLACK_USER_TOKEN")
+    token = os.getenv("SLACK_USER_TOKEN") or os.getenv("SLACK_BOT_TOKEN")
     if not token:
-        raise RuntimeError("環境変数 SLACK_USER_TOKEN が設定されていません。Secrets の設定を確認してください。")
+        raise RuntimeError(
+            "SLACK_USER_TOKEN も SLACK_BOT_TOKEN も環境変数に設定されていません。"
+            "Streamlit Cloud の Secrets を確認してください。"
+        )
 
     client = WebClient(token=token)
 
+    # チャンネル名 or ID（必要に応じて Secrets で上書きできるようにしておく）
+    channel = os.getenv("SLACK_DEBUG_CHANNEL", "動作検証用")
+
     try:
-        # 認証テスト
-        auth_res = client.auth_test()
-        logger.info(f"Slack auth_test OK: {auth_res}")
-
-        # チャンネル一覧から「動作検証用」を探す
-        channel_id = None
-        cursor = None
-
-        while True:
-            res = client.conversations_list(
-                types="public_channel,private_channel",
-                limit=100,
-                cursor=cursor
-            )
-            for ch in res["channels"]:
-                if ch.get("name") == "動作検証用":
-                    channel_id = ch["id"]
-                    break
-
-            cursor = res.get("response_metadata", {}).get("next_cursor")
-            if channel_id or not cursor:
-                break
-
-        if not channel_id:
-            raise RuntimeError("Slack に『動作検証用』というチャンネルが見つかりませんでした。名前が完全一致か確認してください。")
-
-        # テストメッセージを送信
-        client.chat_postMessage(
-            channel=channel_id,
-            text="接続テスト：Streamlit Cloud からのテストメッセージです。"
+        resp = client.chat_postMessage(
+            channel=channel,
+            text=":white_check_mark: Streamlit アプリからの Slack 接続テストに成功しました！",
         )
-
-        return "Slack へのテストメッセージ送信に成功しました。"
-
+        if not resp.get("ok"):
+            raise RuntimeError(f"Slack API が ok=False を返しました: {resp}")
+        return f"Slack 接続テストに成功しました。（channel={channel}）"
     except SlackApiError as e:
-        logger.exception(e)
+        logger.exception("Slack 接続テストで SlackApiError が発生しました。")
         raise RuntimeError(f"Slack API エラー: {e.response['error']}") from e
     except Exception as e:
-        logger.exception(e)
+        logger.exception("Slack 接続テストで予期せぬエラーが発生しました。")
         raise
 ##############################################################################################################################
 
