@@ -32,7 +32,8 @@ from langchain.output_parsers import CommaSeparatedListOutputParser
 from langchain import LLMChain
 import datetime
 import constants as ct
-
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 ############################################################
 # 設定関連
@@ -632,3 +633,62 @@ def adjust_string(s):
     
     # OSがWindows以外の場合はそのまま返す
     return s
+
+def test_slack_connection():
+    """
+    Streamlit Cloud の環境から Slack にメッセージを送れるかテストする関数。
+    「動作検証用」チャンネルを名前で探して、テストメッセージを1件投げる。
+    """
+    token = os.environ.get("SLACK_USER_TOKEN")
+    if not token:
+        # Secrets に SLACK_USER_TOKEN が入っていない場合
+        raise RuntimeError("環境変数 SLACK_USER_TOKEN が設定されていません。Streamlit Cloud の Secrets を確認してください。")
+
+    client = WebClient(token=token)
+
+    try:
+        # 認証テスト
+        auth_res = client.auth_test()
+        logger.info(f"Slack auth_test OK: {auth_res}")
+
+        # チャンネル一覧から「動作検証用」を探す
+        channel_name = "動作検証用"
+        channel_id = None
+        cursor = None
+
+        while True:
+            res = client.conversations_list(
+                types="public_channel,private_channel",
+                limit=100,
+                cursor=cursor
+            )
+            for ch in res.get("channels", []):
+                if ch.get("name") == channel_name:
+                    channel_id = ch["id"]
+                    break
+
+            if channel_id:
+                break
+
+            cursor = res.get("response_metadata", {}).get("next_cursor") or None
+            if not cursor:
+                break
+
+        if not channel_id:
+            raise RuntimeError(f"Slack にチャンネル『{channel_name}』が見つかりませんでした。チャンネル名が正しいか確認してください。")
+
+        # テストメッセージを送信
+        client.chat_postMessage(
+            channel=channel_id,
+            text="接続テスト：Streamlit Cloud からのテストメッセージです。"
+        )
+
+        return "Slack へのテストメッセージ送信に成功しました。"
+
+    except SlackApiError as e:
+        logger.exception("Slack API error in test_slack_connection")
+        error_msg = e.response.get("error", str(e))
+        raise RuntimeError(f"Slack API エラーが発生しました: {error_msg}")
+    except Exception as e:
+        logger.exception("Unexpected error in test_slack_connection")
+        raise
