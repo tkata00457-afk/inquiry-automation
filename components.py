@@ -8,7 +8,7 @@
 import logging
 import streamlit as st
 import constants as ct
-
+import utils
 
 ############################################################
 # 関数定義
@@ -35,18 +35,8 @@ def display_sidebar():
                 options=[ct.AI_AGENT_MODE_ON, ct.AI_AGENT_MODE_OFF],
                 label_visibility="collapsed"
             )
-        
-        st.markdown("## 問い合わせモード")
 
-###################################################################################################################
-    with st.sidebar:
-        if st.button("Slack 接続テストを実行"):
-            try:
-                msg = utils.test_slack_connection()
-                st.success(msg)
-            except Exception as e:
-                st.error(f"Slack 接続テストでエラーが発生しました: {e}")
-##################################################################################################################
+        st.markdown("## 問い合わせモード")
 
         col1, col2 = st.columns([100, 1])
         with col1:
@@ -55,7 +45,16 @@ def display_sidebar():
                 options=[ct.CONTACT_MODE_OFF, ct.CONTACT_MODE_ON],
                 label_visibility="collapsed"
             )
-        
+
+        # 🔽 ここに Slack 接続テストを配置
+        st.markdown("### Slack 接続テスト")
+        if st.button("Slack 接続テストを実行"):
+            try:
+                msg = utils.test_slack_connection()
+                st.success(msg)
+            except Exception as e:
+                st.error(f"Slack 接続テストでエラーが発生しました: {e}")
+
         st.divider()
 
         st.markdown("**【AIエージェントとは】**")
