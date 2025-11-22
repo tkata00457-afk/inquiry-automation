@@ -48,35 +48,51 @@ load_dotenv()
 
 def test_slack_connection() -> str:
     """
-    Slack への投稿テスト用関数。
-    「動作検証用」チャンネルにテストメッセージを送るだけ。
+    Slack への接続テストを行う。
+    - auth.test でトークンの有効性を確認
+    - #動作検証用 にテストメッセージを送信
     """
-    token = os.getenv("SLACK_USER_TOKEN") or os.getenv("SLACK_BOT_TOKEN")
+    token = os.getenv("SLACK_USER_TOKEN")
     if not token:
         raise RuntimeError(
-            "SLACK_USER_TOKEN も SLACK_BOT_TOKEN も環境変数に設定されていません。"
-            "Streamlit Cloud の Secrets を確認してください。"
+            "SLACK_USER_TOKEN が環境変数に設定されていません。"
+            "Streamlit Cloud の Secrets に SLACK_USER_TOKEN=\"xoxp-...\" を設定してください。"
         )
 
     client = WebClient(token=token)
 
-    # チャンネル名 or ID（必要に応じて Secrets で上書きできるようにしておく）
-    channel = os.getenv("SLACK_DEBUG_CHANNEL", "動作検証用")
+    # 1) auth.test でトークン自体の確認
+    try:
+        auth_res = client.auth_test()
+    except SlackApiError as e:
+        data = e.response.data if hasattr(e, "response") else {}
+        raise RuntimeError(
+            f"auth.test でエラーが発生しました: "
+            f"error={data.get('error')} needed={data.get('needed')} "
+            f"provided={data.get('provided')} scopes={data.get('scopes')}"
+        )
+
+    # 2) メッセージ送信テスト
+    channel = os.getenv("SLACK_TEST_CHANNEL", "#動作検証用")
 
     try:
-        resp = client.chat_postMessage(
+        res = client.chat_postMessage(
             channel=channel,
-            text=":white_check_mark: Streamlit アプリからの Slack 接続テストに成功しました！",
+            text="Slack 接続テストメッセージです :robot_face:",
         )
-        if not resp.get("ok"):
-            raise RuntimeError(f"Slack API が ok=False を返しました: {resp}")
-        return f"Slack 接続テストに成功しました。（channel={channel}）"
     except SlackApiError as e:
-        logger.exception("Slack 接続テストで SlackApiError が発生しました。")
-        raise RuntimeError(f"Slack API エラー: {e.response['error']}") from e
-    except Exception as e:
-        logger.exception("Slack 接続テストで予期せぬエラーが発生しました。")
-        raise
+        data = e.response.data if hasattr(e, "response") else {}
+        raise RuntimeError(
+            "Slack API エラーが発生しました: "
+            f"error={data.get('error')} needed={data.get('needed')} "
+            f"provided={data.get('provided')} scopes={data.get('scopes')}"
+        )
+
+    return (
+        f"Slack 接続成功: workspace={auth_res.get('team')} "
+        f"ユーザー={auth_res.get('user')} / "
+        f"チャンネル {channel} にテストメッセージを送信しました。"
+    )
 ##############################################################################################################################
 
 
