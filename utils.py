@@ -31,8 +31,6 @@ from docx import Document
 from langchain.output_parsers import CommaSeparatedListOutputParser
 from langchain import LLMChain
 import datetime
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 import constants as ct
 
 logger = logging.getLogger(ct.LOGGER_NAME)
@@ -42,88 +40,6 @@ logger = logging.getLogger(ct.LOGGER_NAME)
 # 設定関連
 ############################################################
 load_dotenv()
-
-#######################################################################################################################
-def test_slack_connection() -> str:
-    """
-    Streamlit Cloud の環境から Slack にメッセージを送れるかテストする関数。
-    SLACK_TEST_CHANNEL に指定したチャンネルに 1 件メッセージを投げます。
-
-    例:
-      SLACK_TEST_CHANNEL = "all-動作検証用"
-      SLACK_TEST_CHANNEL = "#all-動作検証用"  どちらでも OK
-    """
-    token = os.environ.get("SLACK_USER_TOKEN")
-    if not token:
-        raise RuntimeError(
-            "環境変数 SLACK_USER_TOKEN が設定されていません。"
-            "Streamlit Cloud の Secrets を確認してください。"
-        )
-
-    raw_channel = os.environ.get("SLACK_TEST_CHANNEL")
-    if not raw_channel:
-        raise RuntimeError(
-            "環境変数 SLACK_TEST_CHANNEL が設定されていません。"
-            "Streamlit Cloud の Secrets で設定してください。"
-        )
-
-    # "#all-動作検証用" → "all-動作検証用" にそろえる
-    channel_name = raw_channel.strip().lstrip("#")
-
-    client = WebClient(token=token)
-
-    try:
-        # 認証テスト
-        auth_res = client.auth_test()
-        logger.info(f"Slack auth_test OK: {auth_res}")
-
-        # チャンネル一覧から name=channel_name を探して ID を取得
-        channel_id = None
-        cursor = None
-        while True:
-            res = client.conversations_list(
-                types="public_channel,private_channel",
-                limit=100,
-                cursor=cursor,
-            )
-            for ch in res.get("channels", []):
-                if ch.get("name") == channel_name:
-                    channel_id = ch["id"]
-                    break
-
-            if channel_id:
-                break
-
-            cursor = res.get("response_metadata", {}).get("next_cursor") or None
-            if not cursor:
-                break
-
-        if not channel_id:
-            raise RuntimeError(
-                f"Slack にチャンネル『{raw_channel}』が見つかりませんでした。"
-                " SLACK_TEST_CHANNEL に設定した名前が正しいか、"
-                "アプリ／自分がそのチャンネルに参加しているかを確認してください。"
-            )
-
-        resp = client.chat_postMessage(
-            channel=channel_id,
-            text=f"接続テスト：Streamlit Cloud からのテストメッセージです。（channel: {raw_channel}）"
-        )
-
-        if not resp.get("ok", False):
-            raise RuntimeError(f"Slack API エラーが発生しました: {resp.get('error')}")
-
-        return f"Slack へのテストメッセージ送信に成功しました！（channel: {raw_channel}）"
-
-    except SlackApiError as e:
-        logger.exception("Slack API error in test_slack_connection")
-        err = e.response.get("error", "unknown_error")
-        raise RuntimeError(f"Slack API エラーが発生しました: {err}")
-    except Exception:
-        logger.exception("Unexpected error in test_slack_connection")
-        raise
-##############################################################################################################################
-
 
 
 ############################################################
@@ -293,6 +209,35 @@ def run_customer_doc_chain(param):
 
     return ai_msg["answer"]
 
+def search_pricing_table(param: str) -> str:
+    """
+    商品・料金テーブル検索に特化したTool設定用の関数。
+    Agent から呼ばれることを想定して、
+    質問文（param）を受け取り、回答テキストだけを返す。
+    """
+    if "pricing_doc_chain" not in st.session_state:
+        raise RuntimeError(
+            "料金テーブル用チェーン(pricing_doc_chain)が初期化されていません。"
+            "initialize() の中で create_rag_chain を呼んでください。"
+        )
+
+    chain = st.session_state.pricing_doc_chain
+
+    try:
+        result = chain.invoke({"input": param})
+    except Exception as e:
+        logger.exception("search_pricing_table でエラー: %s", e)
+        raise
+
+    if isinstance(result, dict):
+        if "answer" in result:
+            return result["answer"]
+        if "result" in result:
+            return result["result"]
+        if "output_text" in result:
+            return result["output_text"]
+
+    return str(result)
 
 def delete_old_conversation_log(result):
     """
