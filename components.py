@@ -8,7 +8,6 @@
 import logging
 import streamlit as st
 import constants as ct
-import utils
 
 ############################################################
 # 関数定義
@@ -45,15 +44,6 @@ def display_sidebar():
                 options=[ct.CONTACT_MODE_OFF, ct.CONTACT_MODE_ON],
                 label_visibility="collapsed",
             )
-
-        # 🔽 ここが Slack 接続テスト
-        st.markdown("### Slack 接続テスト（デバッグ）")
-        if st.button("Slack 接続テストを実行"):
-            try:
-                msg = utils.test_slack_connection()
-                st.success(msg)
-            except Exception as e:
-                st.error(f"Slack 接続テストでエラーが発生しました: {e}")
 
         st.divider()
 

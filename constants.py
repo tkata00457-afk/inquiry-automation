@@ -87,7 +87,7 @@ SUPPORTED_EXTENSIONS = {
 
 DB_ALL_PATH = "./.db_all"
 DB_COMPANY_PATH = "./.db_company"
-
+DB_PRICING_PATH = f"{RAG_TOP_FOLDER_PATH}/pricing"
 
 # ==========================================
 # AIエージェント関連
@@ -98,9 +98,11 @@ DB_SERVICE_PATH = "./.db_service"
 DB_CUSTOMER_PATH = "./.db_customer"
 
 DB_NAMES = {
+    DB_ALL_PATH: "全社横断（まとめ）",
     DB_COMPANY_PATH: f"{RAG_TOP_FOLDER_PATH}/company",
     DB_SERVICE_PATH: f"{RAG_TOP_FOLDER_PATH}/service",
     DB_CUSTOMER_PATH: f"{RAG_TOP_FOLDER_PATH}/customer"
+    DB_PRICING_PATH: f"{RAG_TOP_FOLDER_PATH}/pricing",
 }
 
 AI_AGENT_MODE_ON = "利用する"
@@ -117,7 +119,8 @@ SEARCH_CUSTOMER_COMMUNICATION_INFO_TOOL_NAME = "search_customer_communication_to
 SEARCH_CUSTOMER_COMMUNICATION_INFO_TOOL_DESCRIPTION = "顧客とのやりとりに関する情報を参照したい時に使う"
 SEARCH_WEB_INFO_TOOL_NAME = "search_web_tool"
 SEARCH_WEB_INFO_TOOL_DESCRIPTION = "自社サービス「HealthX」に関する質問で、Web検索が必要と判断した場合に使う"
-
+SEARCH_PRICING_INFO_TOOL_NAME = "search_pricing_table"
+SEARCH_PRICING_INFO_TOOL_DESCRIPTION = "商品・料金テーブル（料金プラン、オプション、割引、キャンペーンなど）の情報を参照したい時に使う。"
 
 # ==========================================
 # Slack連携関連
@@ -185,11 +188,11 @@ SYSTEM_PROMPT_NOTICE_SLACK = """
 
 
     # 命令
-    Slackの「動作検証用」チャンネルで、メンバーIDが{slack_id_text}のメンバーに一度だけメンションを当て、生成したメッセージを送信してください。
+    Slackの「all-動作検証用」チャンネルで、メンバーIDが{slack_id_text}のメンバーに一度だけメンションを当て、生成したメッセージを送信してください。
 
 
     # 送信先のチャンネル名
-    動作検証用
+    all-動作検証用
 
 
     # メッセージの通知先
@@ -207,12 +210,15 @@ SYSTEM_PROMPT_NOTICE_SLACK = """
     - 「メッセージフォーマット」を使い、以下の各項目の文章を生成してください。
         - 【問い合わせ情報】の「カテゴリ」
         - 【問い合わせ情報】の「日時」
+        - 【メンション先の選定理由】
         - 【回答・対応案とその根拠】
 
     - 「顧客から弊社への問い合わせ内容」と「従業員情報と過去の問い合わせ対応履歴」を基に文章を生成してください。
 
     - 【問い合わせ情報】の「カテゴリ」は、【問い合わせ情報】の「問い合わせ内容」を基に適切なものを生成してください。
 
+    - 【メンション先の選定理由】では、なぜ {slack_id_text} のメンバーにメンションを行うべきなのかを、従業員の担当業務・スキル・過去の対応履歴との関係性を踏まえて、1〜3文程度で具体的に説明してください。
+    
     - 【回答・対応案】について、以下の条件に従って生成してください。
         - 回答・対応案の内容と、それが良いと判断した根拠を、それぞれ3つずつ生成してください。
 
@@ -236,6 +242,11 @@ SYSTEM_PROMPT_NOTICE_SLACK = """
     ・カテゴリ: 
     ・問い合わせ者: 山田太郎
     ・日時: {now_datetime}
+
+    --------------------
+
+    【メンション先の選定理由】
+    ・理由: 
 
     --------------------
 
