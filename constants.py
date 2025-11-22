@@ -85,10 +85,6 @@ SUPPORTED_EXTENSIONS = {
     ".txt": lambda path: TextLoader(path, encoding="utf-8")
 }
 
-DB_ALL_PATH = "./.db_all"
-DB_COMPANY_PATH = "./.db_company"
-DB_PRICING_PATH = f"{RAG_TOP_FOLDER_PATH}/pricing"
-
 # ==========================================
 # AIエージェント関連
 # ==========================================
