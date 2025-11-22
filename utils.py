@@ -62,28 +62,22 @@ def build_error_message(message):
 def create_rag_chain(db_name):
     """
     引数として渡されたDB内を参照するRAGのChainを作成
-
-    Args:
-        db_name: RAG化対象のデータを格納するデータベース名
     """
     logger = logging.getLogger(ct.LOGGER_NAME)
 
     docs_all = []
-    # AIエージェント機能を使わない場合の処理
+
+    # 「全てのデータ」を見るRAG（DB_ALL_PATH）の場合
     if db_name == ct.DB_ALL_PATH:
         folders = os.listdir(ct.RAG_TOP_FOLDER_PATH)
-        # 「data」フォルダ直下の各フォルダ名に対して処理
         for folder_path in folders:
             if folder_path.startswith("."):
                 continue
-            # フォルダ内の各ファイルのデータをリストに追加
             add_docs(f"{ct.RAG_TOP_FOLDER_PATH}/{folder_path}", docs_all)
-    # AIエージェント機能を使う場合の処理
+
+    # 特定カテゴリ用（company / customer / service / pricing）の場合
     else:
-        # データベース名に対応した、RAG化対象のデータ群が格納されているフォルダパスを取得
-        folder_path = ct.DB_NAMES[db_name]
-        # フォルダ内の各ファイルのデータをリストに追加
-        add_docs(folder_path, docs_all)
+        add_docs(db_name, docs_all)
 
     # OSがWindowsの場合、Unicode正規化と、cp932（Windows用の文字コード）で表現できない文字を除去
     for doc in docs_all:
