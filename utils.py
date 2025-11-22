@@ -243,10 +243,17 @@ def search_pricing_table(param: str) -> str:
             "initialize() の中で create_rag_chain を呼んでください。"
         )
 
+    logger = logging.getLogger(ct.LOGGER_NAME)
     chain = st.session_state.pricing_doc_chain
 
     try:
-        result = chain.invoke({"input": param})
+        # ★ ここで chat_history も渡すのがポイント
+        result = chain.invoke(
+            {
+                "input": param,
+                "chat_history": st.session_state.chat_history,
+            }
+        )
     except Exception as e:
         logger.exception("search_pricing_table でエラー: %s", e)
         raise
