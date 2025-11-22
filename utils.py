@@ -29,7 +29,7 @@ from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
 from docx import Document
 from langchain.output_parsers import CommaSeparatedListOutputParser
-from langchain import LLMChain
+from langchain.chains import LLMChain
 import datetime
 import constants as ct
 
@@ -59,9 +59,13 @@ def build_error_message(message):
     return "\n".join([message, ct.COMMON_ERROR_MESSAGE])
 
 
-def create_rag_chain(db_name):
+def create_rag_chain(db_name: str):
     """
     引数として渡されたDB内を参照するRAGのChainを作成
+
+    Args:
+        db_name: RAG化対象のデータを格納するフォルダパス
+                 （例）ct.DB_COMPANY_PATH, ct.DB_CUSTOMER_PATH, ...
     """
     logger = logging.getLogger(ct.LOGGER_NAME)
 
@@ -69,22 +73,36 @@ def create_rag_chain(db_name):
 
     # 「全てのデータ」を見るRAG（DB_ALL_PATH）の場合
     if db_name == ct.DB_ALL_PATH:
-        folders = os.listdir(ct.RAG_TOP_FOLDER_PATH)
-        for folder_path in folders:
-            if folder_path.startswith("."):
-                continue
-            add_docs(f"{ct.RAG_TOP_FOLDER_PATH}/{folder_path}", docs_all)
+        # data/rag フォルダ自体が無い場合は落ちないようにガード
+        if not os.path.isdir(ct.RAG_TOP_FOLDER_PATH):
+            logger.warning(
+                f"RAG_TOP_FOLDER_PATH が存在しません: {ct.RAG_TOP_FOLDER_PATH}"
+            )
+        else:
+            for folder_name in os.listdir(ct.RAG_TOP_FOLDER_PATH):
+                # 隠しフォルダなどはスキップ
+                if folder_name.startswith("."):
+                    continue
+                folder_path = os.path.join(ct.RAG_TOP_FOLDER_PATH, folder_name)
+                if not os.path.isdir(folder_path):
+                    # ファイルが混ざっていても落ちないように
+                    continue
+                add_docs(folder_path, docs_all)
 
     # 特定カテゴリ用（company / customer / service / pricing）の場合
     else:
-        add_docs(db_name, docs_all)
+        # ./data/rag/company などのフォルダが無い場合も落とさない
+        if not os.path.isdir(db_name):
+            logger.warning(f"RAGデータフォルダが存在しません: {db_name}")
+        else:
+            add_docs(db_name, docs_all)
 
-    # OSがWindowsの場合、Unicode正規化と、cp932（Windows用の文字コード）で表現できない文字を除去
+    # OSがWindowsの場合、Unicode正規化と、cp932で表現できない文字を除去
     for doc in docs_all:
         doc.page_content = adjust_string(doc.page_content)
         for key in doc.metadata:
             doc.metadata[key] = adjust_string(doc.metadata[key])
-    
+
     text_splitter = CharacterTextSplitter(
         chunk_size=ct.CHUNK_SIZE,
         chunk_overlap=ct.CHUNK_OVERLAP,
@@ -94,11 +112,18 @@ def create_rag_chain(db_name):
 
     embeddings = OpenAIEmbeddings()
 
-    # すでに対象のデータベースが作成済みの場合は読み込み、未作成の場合は新規作成する
-    if os.path.isdir(db_name):
-        db = Chroma(persist_directory=".db", embedding_function=embeddings)
+    # すでにDBが作成済みなら読み込み、無ければ新規作成
+    # （とりあえず既存の設計に合わせて .db を共通で使う）
+    persist_dir = ".db"
+    if os.path.isdir(persist_dir):
+        db = Chroma(persist_directory=persist_dir, embedding_function=embeddings)
     else:
-        db = Chroma.from_documents(splitted_docs, embedding=embeddings, persist_directory=".db")
+        db = Chroma.from_documents(
+            splitted_docs,
+            embedding=embeddings,
+            persist_directory=persist_dir,
+        )
+
     retriever = db.as_retriever(search_kwargs={"k": ct.TOP_K})
 
     question_generator_template = ct.SYSTEM_PROMPT_CREATE_INDEPENDENT_TEXT
@@ -122,10 +147,13 @@ def create_rag_chain(db_name):
         st.session_state.llm, retriever, question_generator_prompt
     )
 
-    question_answer_chain = create_stuff_documents_chain(st.session_state.llm, question_answer_prompt)
+    question_answer_chain = create_stuff_documents_chain(
+        st.session_state.llm, question_answer_prompt
+    )
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
     return rag_chain
+
 
 
 def add_docs(folder_path, docs_all):
