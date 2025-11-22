@@ -94,16 +94,20 @@ DB_PRICING_PATH = f"{RAG_TOP_FOLDER_PATH}/pricing"
 # ==========================================
 AI_AGENT_MAX_ITERATIONS = 5
 
+RAG_TOP_FOLDER_PATH = "./data/rag"
+DB_COMPANY_PATH  = f"{RAG_TOP_FOLDER_PATH}/company"
+DB_SERVICE_PATH  = f"{RAG_TOP_FOLDER_PATH}/service"
+DB_CUSTOMER_PATH = f"{RAG_TOP_FOLDER_PATH}/customer"
+DB_ALL_PATH      = f"{RAG_TOP_FOLDER_PATH}/all"
+
+CHROMA_DB_PATH_COMPANY  = "./.db_company"
+CHROMA_DB_PATH_SERVICE  = "./.db_service"
+CHROMA_DB_PATH_CUSTOMER = "./.db_customer"
+CHROMA_DB_PATH_ALL      = "./.db_all"
+DOCS_DIR = "./data/docs"
 DB_SERVICE_PATH = "./.db_service"
 DB_CUSTOMER_PATH = "./.db_customer"
-
-DB_NAMES = {
-    DB_ALL_PATH      = f"{RAG_TOP_FOLDER_PATH}/all",
-    DB_COMPANY_PATH  = f"{RAG_TOP_FOLDER_PATH}/company",
-    DB_SERVICE_PATH  = f"{RAG_TOP_FOLDER_PATH}/service",
-    DB_CUSTOMER_PATH = f"{RAG_TOP_FOLDER_PATH}/customer",
-    DB_PRICING_PATH  = f"{RAG_TOP_FOLDER_PATH}/pricing",
-    }
+DB_PRICING_PATH  = f"{RAG_TOP_FOLDER_PATH}/pricing"
 
 AI_AGENT_MODE_ON = "利用する"
 AI_AGENT_MODE_OFF = "利用しない"
