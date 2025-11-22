@@ -233,40 +233,31 @@ def run_customer_doc_chain(param):
 
 def search_pricing_table(param: str) -> str:
     """
-    商品・料金テーブル検索に特化したTool設定用の関数。
-    Agent から呼ばれることを想定して、
-    質問文（param）を受け取り、回答テキストだけを返す。
+    商品・料金テーブル検索に特化したTool設定用の関数
+
+    Args:
+        param: ユーザー入力値
+
+    Returns:
+        LLMからの回答
     """
-    if "pricing_doc_chain" not in st.session_state:
-        raise RuntimeError(
-            "料金テーブル用チェーン(pricing_doc_chain)が初期化されていません。"
-            "initialize() の中で create_rag_chain を呼んでください。"
-        )
+    # 料金テーブル参照に特化したChainを実行してLLMからの回答取得
+    ai_msg = st.session_state.pricing_doc_chain.invoke(
+        {
+            "input": param,
+            "chat_history": st.session_state.chat_history,
+        }
+    )
 
-    logger = logging.getLogger(ct.LOGGER_NAME)
-    chain = st.session_state.pricing_doc_chain
+    # 会話履歴への追加
+    st.session_state.chat_history.extend(
+        [
+            HumanMessage(content=param),
+            AIMessage(content=ai_msg["answer"]),
+        ]
+    )
 
-    try:
-        # ★ ここで chat_history も渡すのがポイント
-        result = chain.invoke(
-            {
-                "input": param,
-                "chat_history": st.session_state.chat_history,
-            }
-        )
-    except Exception as e:
-        logger.exception("search_pricing_table でエラー: %s", e)
-        raise
-
-    if isinstance(result, dict):
-        if "answer" in result:
-            return result["answer"]
-        if "result" in result:
-            return result["result"]
-        if "output_text" in result:
-            return result["output_text"]
-
-    return str(result)
+    return ai_msg["answer"]
 
 def delete_old_conversation_log(result):
     """
