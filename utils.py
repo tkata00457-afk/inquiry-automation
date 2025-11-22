@@ -31,9 +31,9 @@ from docx import Document
 from langchain.output_parsers import CommaSeparatedListOutputParser
 from langchain import LLMChain
 import datetime
-import constants as ct
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+import constants as ct
 
 logger = logging.getLogger(ct.LOGGER_NAME)
 
@@ -48,51 +48,79 @@ load_dotenv()
 
 def test_slack_connection() -> str:
     """
-    Slack への接続テストを行う。
-    - auth.test でトークンの有効性を確認
-    - #動作検証用 にテストメッセージを送信
+    Slack への接続テスト & チャンネルへの投稿テスト
+    - どのトークンを使っているか
+    - どんな missing_scope が出ているか
+    を画面に出すための関数
     """
-    token = os.getenv("SLACK_USER_TOKEN")
+    logger = logging.getLogger(ct.LOGGER_NAME)
+
+    user_token = os.getenv("SLACK_USER_TOKEN")
+    bot_token = os.getenv("SLACK_BOT_TOKEN")
+
+    token_type = None
+    token = None
+
+    if user_token:
+        token = user_token
+        token_type = "user"
+    elif bot_token:
+        token = bot_token
+        token_type = "bot"
+
     if not token:
-        raise RuntimeError(
-            "SLACK_USER_TOKEN が環境変数に設定されていません。"
-            "Streamlit Cloud の Secrets に SLACK_USER_TOKEN=\"xoxp-...\" を設定してください。"
-        )
+        raise RuntimeError("SLACK_USER_TOKEN も SLACK_BOT_TOKEN も設定されていません。")
 
     client = WebClient(token=token)
 
-    # 1) auth.test でトークン自体の確認
+    # 1) auth.test でトークンの有効性チェック
     try:
-        auth_res = client.auth_test()
+        auth = client.auth_test()
     except SlackApiError as e:
-        data = e.response.data if hasattr(e, "response") else {}
+        data = getattr(e, "response", None)
+        payload = getattr(data, "data", {}) if data is not None else {}
+        error = payload.get("error")
+        needed = payload.get("needed")
+        provided = payload.get("provided")
+
         raise RuntimeError(
-            f"auth.test でエラーが発生しました: "
-            f"error={data.get('error')} needed={data.get('needed')} "
-            f"provided={data.get('provided')} scopes={data.get('scopes')}"
+            "Slack auth.test でエラーが発生しました。\n"
+            f"error    = {error}\n"
+            f"needed   = {needed}\n"
+            f"provided = {provided}\n"
+            f"token_type = {token_type}\n"
         )
 
-    # 2) メッセージ送信テスト
+    # 2) 指定チャンネルにテスト投稿
     channel = os.getenv("SLACK_TEST_CHANNEL", "#動作検証用")
 
     try:
-        res = client.chat_postMessage(
+        resp = client.chat_postMessage(
             channel=channel,
-            text="Slack 接続テストメッセージです :robot_face:",
+            text=f"Slack 接続テストメッセージです。token_type={token_type}, user={auth.get('user')}"
+        )
+        ts = resp.get("ts")
+        return (
+            "Slack 投稿テストに成功しました。\n"
+            f"token_type = {token_type}\n"
+            f"channel    = {channel}\n"
+            f"ts         = {ts}"
         )
     except SlackApiError as e:
-        data = e.response.data if hasattr(e, "response") else {}
-        raise RuntimeError(
-            "Slack API エラーが発生しました: "
-            f"error={data.get('error')} needed={data.get('needed')} "
-            f"provided={data.get('provided')} scopes={data.get('scopes')}"
-        )
+        data = getattr(e, "response", None)
+        payload = getattr(data, "data", {}) if data is not None else {}
+        error = payload.get("error")
+        needed = payload.get("needed")
+        provided = payload.get("provided")
 
-    return (
-        f"Slack 接続成功: workspace={auth_res.get('team')} "
-        f"ユーザー={auth_res.get('user')} / "
-        f"チャンネル {channel} にテストメッセージを送信しました。"
-    )
+        raise RuntimeError(
+            "Slack chat.postMessage でエラーが発生しました。\n"
+            f"error    = {error}\n"
+            f"needed   = {needed}\n"
+            f"provided = {provided}\n"
+            f"token_type = {token_type}\n"
+            f"channel    = {channel}"
+        )
 ##############################################################################################################################
 
 
