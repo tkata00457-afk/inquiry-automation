@@ -53,8 +53,9 @@ def test_slack_connection() -> str:
     if not token:
         raise RuntimeError("環境変数 SLACK_USER_TOKEN が設定されていません。Streamlit Secrets を確認してください。")
 
-    # ★ここで環境変数からチャンネル名を取る
-    channel = os.getenv("SLACK_TEST_CHANNEL", "general")
+    # ★ 環境変数からチャンネル名を取る（設定がなければ general）
+    env_channel = os.getenv("SLACK_TEST_CHANNEL")
+    channel = env_channel if env_channel else "general"
 
     client = WebClient(token=token)
 
@@ -67,14 +68,13 @@ def test_slack_connection() -> str:
             raise RuntimeError(f"Slack API エラーが発生しました: {resp.get('error')}")
     except SlackApiError as e:
         err = e.response.get("error", "unknown_error")
-        if err == "channel_not_found":
-            # ★実際に使ったチャンネル名をそのまま表示するように修正
-            raise RuntimeError(
-                f"Slack にチャンネル『{channel}』が見つかりませんでした。"
-                " チャンネル名が正しいか、トークンのユーザーがそのチャンネルに参加しているかを確認してください。"
-            )
-        else:
-            raise RuntimeError(f"Slack API エラーが発生しました: {err}") from e
+        # デバッグ用に、実際使ったチャンネル名と環境変数の値を両方表示
+        raise RuntimeError(
+            "Slack API エラーが発生しました:\n"
+            f"  error = {err}\n"
+            f"  channel 引数 = '{channel}'\n"
+            f"  SLACK_TEST_CHANNEL 環境変数 = {repr(env_channel)}"
+        ) from e
 
     return f"Slack への接続テストに成功しました！（channel: {channel}）"
 ##############################################################################################################################
