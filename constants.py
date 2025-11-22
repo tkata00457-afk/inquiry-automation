@@ -98,12 +98,12 @@ DB_SERVICE_PATH = "./.db_service"
 DB_CUSTOMER_PATH = "./.db_customer"
 
 DB_NAMES = {
-    DB_ALL_PATH: "全社横断（まとめ）",
-    DB_COMPANY_PATH: f"{RAG_TOP_FOLDER_PATH}/company",
-    DB_SERVICE_PATH: f"{RAG_TOP_FOLDER_PATH}/service",
-    DB_CUSTOMER_PATH: f"{RAG_TOP_FOLDER_PATH}/customer"
-    DB_PRICING_PATH: f"{RAG_TOP_FOLDER_PATH}/pricing",
-}
+    DB_ALL_PATH      = f"{RAG_TOP_FOLDER_PATH}/all",
+    DB_COMPANY_PATH  = f"{RAG_TOP_FOLDER_PATH}/company",
+    DB_SERVICE_PATH  = f"{RAG_TOP_FOLDER_PATH}/service",
+    DB_CUSTOMER_PATH = f"{RAG_TOP_FOLDER_PATH}/customer",
+    DB_PRICING_PATH  = f"{RAG_TOP_FOLDER_PATH}/pricing",
+    }
 
 AI_AGENT_MODE_ON = "利用する"
 AI_AGENT_MODE_OFF = "利用しない"
